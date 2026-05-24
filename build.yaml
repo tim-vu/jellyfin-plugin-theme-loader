@@ -1,0 +1,16 @@
+---
+name: "Theme Loader"
+guid: "50346afe-9cea-4ed6-8e8d-7e410afa965e"
+version: "0.1.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+overview: "Upload and inject local Jellyfin Web themes"
+description: >
+  Upload a theme ZIP from the plugin settings page, serve all theme assets locally,
+  and inject the processed CSS into Jellyfin Web through the File Transformation plugin.
+category: "General"
+owner: "timvu"
+artifacts:
+  - "Jellyfin.Plugin.ThemeLoader.dll"
+changelog: >
+  Initial theme upload, local asset serving, CSS URL rewriting, and File Transformation integration.
