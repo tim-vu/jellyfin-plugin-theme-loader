@@ -23,4 +23,4 @@ Example `theme.json`:
 
 CSS is validated, not rewritten. Theme CSS must reference assets with relative paths only, such as `fonts/font_a.woff` from a root `index.css`, or `../fonts/font_a.woff` from `css/index.css`.
 
-Relative `@import` rules are allowed and validated recursively. Remote CSS assets (`http://`, `https://`, protocol-relative, and `data:` URLs), absolute paths, remote imports, and missing files are rejected.
+Relative `@import` rules are allowed and validated recursively. Embedded `data:` asset URLs are allowed. Remote CSS assets (`http://`, `https://`, protocol-relative, and other absolute URLs), absolute paths, remote imports, embedded imports, and missing files are rejected.

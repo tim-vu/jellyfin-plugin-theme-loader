@@ -18,12 +18,7 @@ internal static class ThemeHtmlInjector
 
         var bodyIndex = cleaned.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
 
-        if (bodyIndex < 0)
-        {
-            return cleaned;
-        }
-
-        return cleaned.Insert(bodyIndex, style);
+        return bodyIndex < 0 ? cleaned : cleaned.Insert(bodyIndex, style);
     }
 
     private static string RemoveExistingStyle(string html)

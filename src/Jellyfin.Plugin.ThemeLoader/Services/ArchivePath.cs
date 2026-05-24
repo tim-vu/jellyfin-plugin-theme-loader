@@ -6,11 +6,6 @@ namespace Jellyfin.Plugin.ThemeLoader.Services;
 
 internal static class ArchivePath
 {
-    public static string NormalizeZipEntry(string value)
-    {
-        return Normalize(value);
-    }
-
     public static string NormalizeCssReference(string cssDirectory, string reference)
     {
         var cleanReference = reference.Replace('\\', '/');
@@ -22,7 +17,7 @@ internal static class ArchivePath
         return Normalize(combined);
     }
 
-    private static string Normalize(string path)
+    public static string Normalize(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {

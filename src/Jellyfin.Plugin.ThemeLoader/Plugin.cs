@@ -2,14 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Jellyfin.Plugin.ThemeLoader.Configuration;
+using Jellyfin.Plugin.ThemeLoader.Services;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Jellyfin.Plugin.ThemeLoader;
 
-public class Plugin : BasePlugin<PluginState>, IHasWebPages
+public class Plugin : BasePlugin<ThemeLoaderStateDto>, IHasWebPages
 {
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
         : base(applicationPaths, xmlSerializer)
@@ -19,7 +21,7 @@ public class Plugin : BasePlugin<PluginState>, IHasWebPages
 
     public override string Name => "Theme Loader";
 
-    public override Guid Id => Guid.Parse("50346afe-9cea-4ed6-8e8d-7e410afa965e");
+    public override Guid Id => Guid.Parse("7714068a-7f34-4a14-a059-595e98e2abe4");
 
     public static Plugin? Instance { get; private set; }
 

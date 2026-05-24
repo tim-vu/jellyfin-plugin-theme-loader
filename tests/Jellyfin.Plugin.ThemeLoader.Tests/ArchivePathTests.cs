@@ -9,7 +9,7 @@ public class ArchivePathTests
     [Fact]
     public void NormalizeZipEntry_RejectsTraversal()
     {
-        Assert.Throws<InvalidDataException>(() => ArchivePath.NormalizeZipEntry("../style.css"));
+        Assert.Throws<InvalidDataException>(() => ArchivePath.Normalize("../style.css"));
     }
 
     [Fact]

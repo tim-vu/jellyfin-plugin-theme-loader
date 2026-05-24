@@ -26,10 +26,10 @@ internal static class CssValidator
         Func<string, string>? readCss,
         ISet<string> visitedCssFiles)
     {
-        ICssStyleSheet stylesheet = CreateParser().ParseStyleSheet(css);
+        var stylesheet = CreateParser().ParseStyleSheet(css);
         var cssDirectory = Path.GetDirectoryName(cssPath)?.Replace('\\', '/') ?? string.Empty;
 
-        foreach (ICssRule rule in stylesheet.Rules)
+        foreach (var rule in stylesheet.Rules)
         {
             ValidateRule(rule, cssDirectory, availableFiles, readCss, visitedCssFiles);
         }
@@ -84,6 +84,11 @@ internal static class CssValidator
         Func<string, string>? readCss,
         ISet<string> visitedCssFiles)
     {
+        if (IsEmbedded(importRule.Href))
+        {
+            throw new InvalidDataException($"Embedded CSS import is not allowed: {importRule.Href}");
+        }
+
         string importPath = NormalizeRelativeUrl(importRule.Href, cssDirectory, availableFiles);
         if (readCss is null || !visitedCssFiles.Add(importPath))
         {
@@ -130,9 +135,14 @@ internal static class CssValidator
 
     private static string NormalizeRelativeUrl(string url, string cssDirectory, IReadOnlySet<string> availableFiles)
     {
-        if (IsRemoteOrEmbedded(url))
+        if (IsEmbedded(url))
         {
-            throw new InvalidDataException($"Remote or embedded CSS URL is not allowed: {url}");
+            return url;
+        }
+
+        if (IsRemote(url))
+        {
+            throw new InvalidDataException($"Remote CSS URL is not allowed: {url}");
         }
 
         if (url.StartsWith('/'))
@@ -150,7 +160,12 @@ internal static class CssValidator
         return normalizedPath;
     }
 
-    private static bool IsRemoteOrEmbedded(string url)
+    private static bool IsEmbedded(string url)
+    {
+        return url.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsRemote(string url)
     {
         return url.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(url, UriKind.Absolute, out _);
     }

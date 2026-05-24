@@ -1,0 +1,81 @@
+name: Release Plugin
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Read plugin version
+        id: version
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version: "\(.*\)"/\1/p' build.yaml)"
+          if [ -z "$version" ]; then
+            echo "Unable to read version from build.yaml" >&2
+            exit 1
+          fi
+
+          tag="v${version}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Release tag $tag already exists. Update build.yaml version before merging to master." >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Publish
+        run: dotnet publish src/Jellyfin.Plugin.ThemeLoader/Jellyfin.Plugin.ThemeLoader.csproj --configuration Release --no-restore
+
+      - name: Package plugin
+        shell: bash
+        run: |
+          mkdir -p dist/package
+          publish_dir="src/Jellyfin.Plugin.ThemeLoader/bin/Release/net9.0/publish"
+
+          cp "$publish_dir/Jellyfin.Plugin.ThemeLoader.dll" dist/package/
+          cp "$publish_dir/AngleSharp.dll" dist/package/
+          cp "$publish_dir/AngleSharp.Css.dll" dist/package/
+
+          cd dist/package
+          zip "../ThemeLoader_${{ steps.version.outputs.version }}.zip" \
+            Jellyfin.Plugin.ThemeLoader.dll \
+            AngleSharp.dll \
+            AngleSharp.Css.dll
+
+          cd ..
+          md5sum "ThemeLoader_${{ steps.version.outputs.version }}.zip" > "ThemeLoader_${{ steps.version.outputs.version }}.zip.md5"
+
+      - name: Create GitHub release
+        if: ${{ !env.ACT }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Theme Loader ${{ steps.version.outputs.version }}" \
+            --notes-file build.yaml \
+            "dist/ThemeLoader_${{ steps.version.outputs.version }}.zip" \
+            "dist/ThemeLoader_${{ steps.version.outputs.version }}.zip.md5" \
+            "build.yaml"

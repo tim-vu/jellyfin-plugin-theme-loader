@@ -4,72 +4,62 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.ThemeLoader.Configuration;
 using Jellyfin.Plugin.ThemeLoader.Models;
+using Jellyfin.Plugin.ThemeLoader.Repositories;
 using MediaBrowser.Controller;
 using Microsoft.AspNetCore.StaticFiles;
 
 namespace Jellyfin.Plugin.ThemeLoader.Services;
 
-public sealed partial class ThemeStorageService : IThemeStorageService
+public sealed class ThemeStorageService : IThemeStorageService
 {
     private const long MaxEntryBytes = 50L * 1024L * 1024L;
     private const long MaxTotalBytes = 100L * 1024L * 1024L;
     private const string ThemeManifestPath = "theme.json";
-    private const int MetadataMaxLength = 64;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly string _rootDirectory;
     private readonly string _themesDirectory;
+    private readonly IStateRepository _stateRepository;
     private readonly FileExtensionContentTypeProvider _contentTypeProvider = new();
 
-    public ThemeStorageService(IServerApplicationPaths applicationPaths)
+    public ThemeStorageService(IServerApplicationPaths applicationPaths, IStateRepository stateRepository)
     {
-        _rootDirectory = Path.Combine(applicationPaths.PluginConfigurationsPath, "ThemeLoader");
-        _themesDirectory = Path.Combine(_rootDirectory, "themes");
+        _themesDirectory = Path.Combine(applicationPaths.PluginConfigurationsPath, "ThemeLoader", "themes");
+        _stateRepository = stateRepository;
     }
 
     public ThemeLoaderStatus GetStatus()
     {
-        var plugin = Plugin.Instance;
-        if (plugin is null)
-        {
-            return new ThemeLoaderStatus
+        var state = _stateRepository.Get();
+        var themes = state.InstalledThemes.Values
+            .Select(theme => new ThemeInfo
             {
-                Enabled = false,
-                Theme = null,
-                InitializationFailed = false
-            };
-        }
-
-        var selectedTheme = plugin.Configuration.GetSelectedTheme();
-        ActiveThemeInfo? theme = selectedTheme is null
-            ? null
-            : new ActiveThemeInfo
-            {
-                Slug = selectedTheme.Slug,
-                Name = selectedTheme.Name,
-                Version = selectedTheme.Version,
-                UploadedAt = selectedTheme.UploadedAtUtc
-            };
+                Id = theme.Id,
+                Name = theme.Name,
+                Version = theme.Version,
+                UploadedAt = theme.UploadedAtUtc
+            })
+            .OrderBy(t => t.UploadedAt)
+            .ToList();
 
         return new ThemeLoaderStatus
         {
-            Enabled = plugin.Configuration.Enabled,
-            Theme = theme,
-            InitializationFailed = plugin.Configuration.InitializationFailed
+            Enabled = state.Enabled,
+            SelectedThemeId = state.SelectedThemeId,
+            Themes = themes,
+            InitializationFailed = state.InitializationFailed
         };
     }
 
-    public async Task<ThemeUploadResult> UploadThemeAsync(Stream zipStream, CancellationToken cancellationToken)
+    public async Task<ThemeUploadResult> UpdateTheme(Stream zipStream, CancellationToken cancellationToken)
     {
+        Directory.CreateDirectory(_themesDirectory);
         var stagingDirectory = CreateStagingDirectory();
 
         Directory.CreateDirectory(stagingDirectory);
@@ -80,7 +70,7 @@ public sealed partial class ThemeStorageService : IThemeStorageService
             var manifest = await ReadManifestAsync(stagingDirectory, extractedFiles, cancellationToken).ConfigureAwait(false);
             ValidateThemeIdentity(manifest);
 
-            var entrypoint = ArchivePath.NormalizeZipEntry(manifest.Entrypoint);
+            var entrypoint = ArchivePath.Normalize(manifest.Entrypoint);
 
             if (!extractedFiles.Contains(entrypoint))
             {
@@ -96,39 +86,31 @@ public sealed partial class ThemeStorageService : IThemeStorageService
                 extractedFiles.Where(file => file != ThemeManifestPath).ToHashSet(StringComparer.Ordinal),
                 path => File.ReadAllText(Path.Combine(stagingDirectory, PathFromArchive(path))));
 
-            var themeDirectory = Path.Combine(_themesDirectory, CreateThemeDirectoryName(manifest.Slug, manifest.Version));
-            var plugin = RequirePlugin();
-            var existingTheme = plugin.Configuration.InstalledThemes.FirstOrDefault(theme => theme.Slug == manifest.Slug);
+            var themeDirectory = Path.Combine(_themesDirectory, manifest.Id.ToString());
 
             if (Directory.Exists(themeDirectory))
             {
                 Directory.Delete(themeDirectory, recursive: true);
             }
 
-            Directory.CreateDirectory(_themesDirectory);
             Directory.Move(stagingDirectory, themeDirectory);
 
-            Directory.Delete(stagingDirectory, recursive: true);
-
-            plugin.Configuration.InstalledThemes.RemoveAll(theme => theme.Slug == manifest.Slug);
-            plugin.Configuration.InstalledThemes.Add(new InstalledTheme
-            {
-                Slug = manifest.Slug,
-                Name = manifest.Name,
-                Version = manifest.Version,
-                DirectoryPath = themeDirectory,
-                CssFilePath = Path.Combine(themeDirectory, PathFromArchive(entrypoint)),
-                UploadedAtUtc = DateTimeOffset.UtcNow
-            });
-            plugin.Configuration.SelectedTheme = manifest.Slug;
-            plugin.Configuration.Enabled = true;
-            plugin.UpdateConfiguration(plugin.Configuration);
+            var state = _stateRepository.Get();
+            state.AddTheme(
+                manifest.Id,
+                manifest.Name,
+                manifest.Version,
+                Path.Combine(themeDirectory, PathFromArchive(entrypoint)),
+                themeDirectory);
+            state.SelectTheme(manifest.Id);
+            state.Enable();
+            _stateRepository.Save();
 
             return new ThemeUploadResult
             {
-                ThemeSlug = manifest.Slug,
-                ThemeName = manifest.Name,
-                ThemeVersion = manifest.Version
+                Id = manifest.Id,
+                Name = manifest.Name,
+                Version = manifest.Version
             };
         }
         catch
@@ -144,49 +126,58 @@ public sealed partial class ThemeStorageService : IThemeStorageService
 
     public void SetEnabled(bool enabled)
     {
-        Plugin plugin = RequirePlugin();
-        if (enabled && plugin.Configuration.GetSelectedTheme() is null)
+        var state = _stateRepository.Get();
+        
+        if (!enabled)
         {
-            throw new InvalidOperationException("No theme is installed.");
+            state.Disable();
+            _stateRepository.Save();
+            return;
         }
 
-        plugin.Configuration.Enabled = enabled;
-        plugin.UpdateConfiguration(plugin.Configuration);
+        state.Enable();
+        _stateRepository.Save();
     }
 
-    public void DeleteTheme()
+    public void SelectedTheme(Guid id)
     {
-        var plugin = RequirePlugin();
-        var selectedTheme = plugin.Configuration.GetSelectedTheme();
-        if (selectedTheme is not null && Directory.Exists(selectedTheme.DirectoryPath))
+        var state = _stateRepository.Get();
+        state.SelectTheme(id);
+        _stateRepository.Save();
+    }
+
+    public void RemoveTheme(Guid id)
+    {
+        var state = _stateRepository.Get();
+        var theme = state.InstalledThemes.GetValueOrDefault(id);
+
+        if (theme is null)
         {
-            Directory.Delete(selectedTheme.DirectoryPath, recursive: true);
+            throw new InvalidOperationException("Theme with Id not found.");
         }
 
-        plugin.Configuration.Enabled = false;
-        if (selectedTheme is not null)
+        if (Directory.Exists(theme.Directory))
         {
-            plugin.Configuration.InstalledThemes.RemoveAll(theme => theme.Slug == selectedTheme.Slug);
+            Directory.Delete(theme.Directory, recursive: true);
         }
 
-        plugin.Configuration.SelectedTheme = null;
-        plugin.UpdateConfiguration(plugin.Configuration);
+        state.RemoveTheme(id);
+        _stateRepository.Save();
     }
 
     public ThemeAsset GetAsset(string assetPath)
     {
-        var selectedTheme = Plugin.Instance?.Configuration.GetSelectedTheme()
-            ?? throw new FileNotFoundException("Theme asset was not found.", assetPath);
-        var normalizedPath = ArchivePath.NormalizeZipEntry(Uri.UnescapeDataString(assetPath));
-        var normalizedCssPath = Path.GetRelativePath(selectedTheme.DirectoryPath, selectedTheme.CssFilePath).Replace('\\', '/');
+        var selectedTheme = _stateRepository.Get().SelectedTheme ?? throw new FileNotFoundException("Theme asset was not found.", assetPath);
+        var normalizedPath = ArchivePath.Normalize(Uri.UnescapeDataString(assetPath));
+        var normalizedCssPath = Path.GetRelativePath(selectedTheme.Directory, selectedTheme.EntrypointPath).Replace('\\', '/');
 
         if (normalizedPath == ThemeManifestPath || string.Equals(normalizedPath, normalizedCssPath, StringComparison.Ordinal))
         {
             throw new FileNotFoundException("Theme asset was not found.", normalizedPath);
         }
 
-        var fullPath = Path.Combine(selectedTheme.DirectoryPath, PathFromArchive(normalizedPath));
-        var rootedActiveDirectory = Path.GetFullPath(selectedTheme.DirectoryPath) + Path.DirectorySeparatorChar;
+        var fullPath = Path.Combine(selectedTheme.Directory, PathFromArchive(normalizedPath));
+        var rootedActiveDirectory = Path.GetFullPath(selectedTheme.Directory) + Path.DirectorySeparatorChar;
         var rootedFullPath = Path.GetFullPath(fullPath);
 
         if (!rootedFullPath.StartsWith(rootedActiveDirectory, StringComparison.Ordinal) || !File.Exists(rootedFullPath))
@@ -217,7 +208,7 @@ public sealed partial class ThemeStorageService : IThemeStorageService
                 continue;
             }
 
-            var normalizedPath = ArchivePath.NormalizeZipEntry(entry.FullName);
+            var normalizedPath = ArchivePath.Normalize(entry.FullName);
             if (entry.Name.Equals(ThemeManifestPath, StringComparison.OrdinalIgnoreCase) && normalizedPath != ThemeManifestPath)
             {
                 throw new InvalidDataException("theme.json must be in the theme ZIP root directory.");
@@ -270,12 +261,12 @@ public sealed partial class ThemeStorageService : IThemeStorageService
             throw new InvalidDataException("Theme manifest is invalid JSON.");
         }
 
-        if (string.IsNullOrWhiteSpace(manifest.Slug)
+        if (manifest.Id == Guid.Empty
             || string.IsNullOrWhiteSpace(manifest.Name)
             || string.IsNullOrWhiteSpace(manifest.Version)
             || string.IsNullOrWhiteSpace(manifest.Entrypoint))
         {
-            throw new InvalidDataException("Theme manifest must include slug, name, version, and entrypoint.");
+            throw new InvalidDataException("Theme manifest must include id, name, version, and entrypoint.");
         }
 
         return manifest;
@@ -283,42 +274,22 @@ public sealed partial class ThemeStorageService : IThemeStorageService
 
     private static void ValidateThemeIdentity(ThemeManifest manifest)
     {
-        ValidateDirectorySegment(manifest.Slug, "slug");
-        ValidateDirectorySegment(manifest.Version, "version");
-    }
-
-    private static void ValidateDirectorySegment(string value, string fieldName)
-    {
-        if (value.Length > MetadataMaxLength || !ThemeDirectoryValueRegex().IsMatch(value))
+        if (manifest.Id == Guid.Empty)
         {
-            throw new InvalidDataException(
-                $"Theme {fieldName} must be 1-{MetadataMaxLength} characters and contain only letters, numbers, '.', '_', '+', or '-'.");
+            throw new InvalidDataException("Theme id must not be empty.");
         }
     }
 
-    private static string CreateStagingDirectory()
+    private string CreateStagingDirectory()
     {
         return Path.Combine(
-            Path.GetTempPath(),
-            "Jellyfin.Plugin.ThemeLoader",
+            _themesDirectory,
+            ".staging",
             "staging-" + Guid.NewGuid().ToString("N"));
-    }
-
-    private static string CreateThemeDirectoryName(string slug, string version)
-    {
-        return $"{slug}-{version}";
-    }
-
-    private static Plugin RequirePlugin()
-    {
-        return Plugin.Instance ?? throw new InvalidOperationException("Theme Loader plugin has not been initialized.");
     }
 
     private static string PathFromArchive(string archivePath)
     {
         return archivePath.Replace('/', Path.DirectorySeparatorChar);
     }
-
-    [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9._+-]*$")]
-    private static partial Regex ThemeDirectoryValueRegex();
 }

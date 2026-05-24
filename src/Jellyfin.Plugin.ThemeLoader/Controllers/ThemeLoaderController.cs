@@ -15,28 +15,26 @@ namespace Jellyfin.Plugin.ThemeLoader.Controllers;
 [Route("ThemeLoader")]
 public sealed class ThemeLoaderController(IThemeStorageService themeStorageService) : ControllerBase
 {
-    private readonly IThemeStorageService _themeStorageService = themeStorageService;
-
     [HttpGet("Status")]
     [Authorize(Policy = "RequiresElevation")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public ActionResult<ThemeLoaderStatus> GetStatus()
     {
-        return _themeStorageService.GetStatus();
+        return themeStorageService.GetStatus();
     }
 
     [HttpPut("Status")]
     [Authorize(Policy = "RequiresElevation")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public ActionResult SetEnabled([FromBody] ThemeEnabledRequest request)
+    public ActionResult SetEnabled([FromBody] EnableLoaderRequest request)
     {
         try
         {
-            _themeStorageService.SetEnabled(request.Enabled);
+            themeStorageService.SetEnabled(request.Enabled);
             return NoContent();
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {
             return Problem(
                 title: "Theme cannot be enabled",
@@ -45,7 +43,27 @@ public sealed class ThemeLoaderController(IThemeStorageService themeStorageServi
         }
     }
 
-    [HttpPost("Theme")]
+    [HttpPut("Status/SelectedTheme")]
+    [Authorize(Policy = "RequiresElevation")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public ActionResult SetSelectedTheme([FromBody] SelectThemeRequest request)
+    {
+        try
+        {
+            themeStorageService.SelectedTheme(request.Id);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return Problem(
+                title: "Theme was not found",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+    }
+
+    [HttpPost("Themes")]
     [Authorize(Policy = "RequiresElevation")]
     [RequestSizeLimit(128L * 1024L * 1024L)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -62,26 +80,37 @@ public sealed class ThemeLoaderController(IThemeStorageService themeStorageServi
             return InvalidThemeProblem("Theme upload must be a ZIP file.");
         }
 
-        await using Stream stream = file.OpenReadStream();
+        await using var stream = file.OpenReadStream();
 
         try
         {
-            return await _themeStorageService.UploadThemeAsync(stream, cancellationToken).ConfigureAwait(false);
+            return await themeStorageService.UpdateTheme(stream, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is InvalidDataException or FileNotFoundException or JsonException)
+        catch (Exception ex) when (ex is InvalidDataException or FileNotFoundException)
         {
             return InvalidThemeProblem(ex.Message);
         }
     }
 
 
-    [HttpDelete("Theme")]
+    [HttpDelete("Theme/{id:guid}")]
     [Authorize(Policy = "RequiresElevation")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public ActionResult DeleteTheme()
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public ActionResult DeleteTheme(Guid id)
     {
-        _themeStorageService.DeleteTheme();
-        return NoContent();
+        try
+        {
+            themeStorageService.RemoveTheme(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Problem(
+                title: "Theme was not found",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status404NotFound);
+        }
     }
 
     [HttpGet("Assets/{**assetPath}")]
@@ -92,7 +121,7 @@ public sealed class ThemeLoaderController(IThemeStorageService themeStorageServi
     {
         try
         {
-            var asset = _themeStorageService.GetAsset(assetPath);
+            var asset = themeStorageService.GetAsset(assetPath);
             return File(asset.Stream, asset.ContentType, enableRangeProcessing: true);
         }
         catch (FileNotFoundException)

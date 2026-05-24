@@ -1,4 +1,5 @@
 using System.IO;
+using Jellyfin.Plugin.ThemeLoader.Repositories;
 
 namespace Jellyfin.Plugin.ThemeLoader.Services;
 
@@ -6,20 +7,24 @@ public static class FileTransformationCallback
 {
     public static string Transform(TransformationPayload payload)
     {
-        var plugin = Plugin.Instance;
+        var stateRepository = new StateRepository();
 
-        var selectedTheme = plugin?.Configuration.GetSelectedTheme();
-        if (plugin is null || !plugin.Configuration.Enabled || selectedTheme is null)
+        var state = stateRepository.Get();
+
+        if (!state.Enabled)
         {
             return payload.Contents;
         }
 
-        if (!File.Exists(selectedTheme.CssFilePath))
-        {
-            return payload.Contents;
-        }
+        var selectedTheme = state.SelectedTheme;
+        var entrypointArchivePath = Path
+            .GetRelativePath(selectedTheme.Directory, selectedTheme.EntrypointPath)
+            .Replace('\\', '/');
+        var css = CssUrlRewriter.RewriteEntryPointUrls(
+            File.ReadAllText(selectedTheme.EntrypointPath),
+            entrypointArchivePath,
+            "ThemeLoader/Assets");
 
-        string css = File.ReadAllText(selectedTheme.CssFilePath);
         return ThemeHtmlInjector.Inject(payload.Contents, css);
     }
 }

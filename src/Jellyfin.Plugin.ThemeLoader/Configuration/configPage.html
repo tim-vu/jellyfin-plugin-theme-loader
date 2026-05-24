@@ -1,11 +1,17 @@
-<div id="ThemeLoaderConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+<div
+  id="ThemeLoaderConfigPage"
+  data-role="page"
+  class="page type-interior pluginConfigurationPage"
+>
   <div data-role="content">
     <div class="content-primary">
       <form id="ThemeLoaderConfigForm">
         <div class="sectionTitleContainer flex align-items-center">
           <h2 class="sectionTitle">Theme Loader</h2>
         </div>
-        <p class="fieldDescription">Upload and manage the active Jellyfin Web theme package.</p>
+        <p class="fieldDescription">
+          Upload and manage the active Jellyfin Web theme package.
+        </p>
 
         <div class="verticalSection">
           <label class="checkboxContainer">
@@ -21,61 +27,196 @@
 
         <div class="verticalSection">
           <h3 class="sectionTitle">Install New Theme</h3>
-          <div id="themeLoaderDropZone" class="paperList">
-            <div class="listItem">
-              <div class="listItemBody">
-                <h3 class="listItemBodyText">Theme ZIP</h3>
-                <div id="themeLoaderSelectedFile" class="secondary listItemBodyText">No file selected</div>
-              </div>
+          <div id="themeLoaderDropZone" class="themeLoaderDropZone">
+            <div class="themeLoaderUploadIcon" aria-hidden="true">
+              <span class="material-icons file_upload"></span>
+            </div>
+            <h3 class="listItemBodyText">Drag and drop your Theme ZIP here</h3>
+            <div class="secondary listItemBodyText">
+              Supports .zip archives containing theme.json and assets
+            </div>
+            <button
+              is="emby-button"
+              type="button"
+              class="raised button-submit"
+              id="themeLoaderBrowse"
+            >
+              <span>Browse Files</span>
+            </button>
+            <div
+              id="themeLoaderSelectedFile"
+              class="secondary listItemBodyText"
+            ></div>
+            <div class="inputContainer themeLoaderFileInput">
+              <input
+                is="emby-input"
+                id="themeLoaderFile"
+                type="file"
+                accept=".zip,application/zip"
+                label="Theme ZIP"
+              />
             </div>
           </div>
-          <div class="fieldDescription">ZIP archive with root theme.json, CSS, and local assets.</div>
-          <div class="inputContainer">
-            <input is="emby-input" id="themeLoaderFile" type="file" accept=".zip,application/zip" label="Theme ZIP" />
-          </div>
-          <button is="emby-button" type="button" class="raised button-submit block" id="themeLoaderUpload">
-            <span>Upload theme</span>
-          </button>
         </div>
 
         <div class="verticalSection">
-          <h3 class="sectionTitle">Theme Library</h3>
-          <div class="paperList">
-            <div class="listItem">
-              <div class="listItemBody">
-                <h3 id="themeLoaderThemeName" class="listItemBodyText">No theme installed</h3>
-                <div id="themeLoaderThemeMeta" class="secondary listItemBodyText">Upload a theme ZIP to install a theme.</div>
-              </div>
-              <button is="paper-icon-button-light" type="button" id="themeLoaderDelete" title="Remove theme">
-                <span class="material-icons delete" aria-hidden="true"></span>
-              </button>
+          <div class="themeLoaderLibraryHeader">
+            <h3 class="sectionTitle">Theme Library</h3>
+            <div id="themeLoaderThemeCount" class="themeLoaderCount"></div>
+          </div>
+          <div class="paperList themeLoaderTable">
+            <div class="themeLoaderTableHeader">
+              <div>Active</div>
+              <div>Theme Name</div>
+              <div>Version</div>
+              <div>Actions</div>
             </div>
+            <div id="themeLoaderThemeList"></div>
           </div>
         </div>
       </form>
     </div>
   </div>
 
+  <style>
+    #ThemeLoaderConfigPage .themeLoaderDropZone {
+      align-items: center;
+      border: 2px dashed rgba(160, 160, 180, 0.55);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75em;
+      justify-content: center;
+      min-height: 18em;
+      padding: 2em;
+      text-align: center;
+      width: 100%;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderDropZone.dragging {
+      border-style: solid;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderUploadIcon {
+      align-items: center;
+      display: flex;
+      height: 4em;
+      justify-content: center;
+      width: 4em;
+    }
+
+    #ThemeLoaderConfigPage #themeLoaderBrowse,
+    #ThemeLoaderConfigPage .themeLoaderDropZone .emby-button {
+      align-self: center;
+      flex: 0 0 auto;
+      width: auto;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderFileInput {
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+      position: absolute;
+      width: 1px;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderLibraryHeader {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderCount {
+      border-radius: 1em;
+      padding: 0.25em 0.75em;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderTableHeader,
+    #ThemeLoaderConfigPage .themeLoaderThemeRow {
+      align-items: center;
+      display: grid;
+      gap: 1em;
+      grid-template-columns: 5em minmax(0, 1fr) 10em 5em;
+      min-height: 4em;
+      padding: 0.75em 1.25em;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderTableHeader {
+      border-bottom: 1px solid rgba(160, 160, 180, 0.25);
+      font-weight: 600;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderTableHeader > :first-child,
+    #ThemeLoaderConfigPage .themeLoaderThemeRow > input[type="radio"] {
+      justify-self: center;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderTableHeader > :last-child {
+      justify-self: end;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderThemeRow + .themeLoaderThemeRow {
+      border-top: 1px solid rgba(160, 160, 180, 0.15);
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderThemeName {
+      align-items: center;
+      display: flex;
+      gap: 0.75em;
+      min-width: 0;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderThemeText {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderVersion {
+      align-self: center;
+    }
+
+    #ThemeLoaderConfigPage .themeLoaderActions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 40em) {
+      #ThemeLoaderConfigPage .themeLoaderTableHeader {
+        display: none;
+      }
+
+      #ThemeLoaderConfigPage .themeLoaderThemeRow {
+        grid-template-columns: 3em minmax(0, 1fr) 4em;
+      }
+
+      #ThemeLoaderConfigPage .themeLoaderVersion {
+        display: none;
+      }
+    }
+  </style>
+
   <script type="text/javascript">
     (() => {
-      const page = document.querySelector('#ThemeLoaderConfigPage');
-      const enabledInput = page.querySelector('#themeLoaderEnabled');
-      const initError = page.querySelector('#themeLoaderInitError');
-      const initErrorText = page.querySelector('#themeLoaderInitErrorText');
-      const dropZone = page.querySelector('#themeLoaderDropZone');
-      const selectedFileText = page.querySelector('#themeLoaderSelectedFile');
-      const fileInput = page.querySelector('#themeLoaderFile');
-      const uploadButton = page.querySelector('#themeLoaderUpload');
-      const deleteButton = page.querySelector('#themeLoaderDelete');
-      const themeName = page.querySelector('#themeLoaderThemeName');
-      const themeMeta = page.querySelector('#themeLoaderThemeMeta');
+      const page = document.querySelector("#ThemeLoaderConfigPage");
+      const enabledInput = page.querySelector("#themeLoaderEnabled");
+      const initError = page.querySelector("#themeLoaderInitError");
+      const initErrorText = page.querySelector("#themeLoaderInitErrorText");
+      const dropZone = page.querySelector("#themeLoaderDropZone");
+      const selectedFileText = page.querySelector("#themeLoaderSelectedFile");
+      const fileInput = page.querySelector("#themeLoaderFile");
+      const browseButton = page.querySelector("#themeLoaderBrowse");
+      const themeList = page.querySelector("#themeLoaderThemeList");
+      const themeCount = page.querySelector("#themeLoaderThemeCount");
       let currentStatus = null;
       let selectedFile = null;
 
       function tokenHeaders() {
         const headers = {};
-        if (window.ApiClient && typeof ApiClient.accessToken === 'function') {
-          headers['X-Emby-Token'] = ApiClient.accessToken();
+        if (window.ApiClient && typeof ApiClient.accessToken === "function") {
+          headers["X-Emby-Token"] = ApiClient.accessToken();
         }
         return headers;
       }
@@ -89,18 +230,23 @@
           ...options,
           headers: {
             ...tokenHeaders(),
-            ...(options && options.headers ? options.headers : {})
-          }
+            ...(options && options.headers ? options.headers : {}),
+          },
         });
 
         if (!response.ok) {
-          const contentType = response.headers.get('content-type') || '';
-          if (contentType.includes('application/problem+json') || contentType.includes('application/json')) {
+          const contentType = response.headers.get("content-type") || "";
+          if (
+            contentType.includes("application/problem+json") ||
+            contentType.includes("application/json")
+          ) {
             const problem = await response.json();
-            throw new Error(problem.detail || problem.title || response.statusText);
+            throw new Error(
+              problem.detail || problem.title || response.statusText,
+            );
           }
 
-          throw new Error(await response.text() || response.statusText);
+          throw new Error((await response.text()) || response.statusText);
         }
 
         if (response.status === 204) {
@@ -112,77 +258,177 @@
 
       function setSelectedFile(file) {
         selectedFile = file || null;
-        selectedFileText.textContent = selectedFile ? selectedFile.name : 'No file selected';
+        selectedFileText.textContent = selectedFile ? selectedFile.name : "";
       }
 
-      function render(status) {
-        currentStatus = status;
-        enabledInput.checked = status.enabled;
-
-        if (status.initializationFailed) {
-          initError.classList.remove('hide');
-          initErrorText.textContent = 'Theme Loader failed to initialize. Install or enable the File Transformation plugin, then restart Jellyfin.';
-        } else {
-          initError.classList.add('hide');
-          initErrorText.textContent = '';
-        }
-
-        if (status.theme) {
-          themeName.textContent = status.theme.name;
-          themeMeta.textContent = `${status.theme.version} (${status.theme.slug}) - Uploaded ${new Date(status.theme.uploadedAt).toLocaleString()}`;
-        } else {
-          themeName.textContent = 'No theme installed';
-          themeMeta.textContent = 'Upload a theme ZIP to install a theme.';
-        }
-
-        enabledInput.disabled = !status.theme;
-        deleteButton.disabled = !status.theme;
-      }
-
-      async function loadStatus() {
-        render(await request('ThemeLoader/Status', { method: 'GET' }));
-      }
-
-      fileInput.addEventListener('change', () => {
-        setSelectedFile(fileInput.files && fileInput.files[0]);
-      });
-
-      dropZone.addEventListener('dragover', event => {
-        event.preventDefault();
-      });
-
-      dropZone.addEventListener('drop', event => {
-        event.preventDefault();
-        const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-        if (file) {
-          setSelectedFile(file);
-        }
-      });
-
-      uploadButton.addEventListener('click', async () => {
-        if (!selectedFile) {
-          Dashboard.alert('Select a theme ZIP first.');
+      async function uploadTheme(file) {
+        if (!file) {
           return;
         }
 
+        setSelectedFile(file);
+        selectedFileText.textContent = "Uploading " + file.name + "...";
+
         const form = new FormData();
-        form.append('file', selectedFile, selectedFile.name);
+        form.append("file", file, file.name);
+
         try {
-          await request('ThemeLoader/Theme', { method: 'POST', body: form });
-          fileInput.value = '';
+          await request("ThemeLoader/Themes", { method: "POST", body: form });
+          fileInput.value = "";
           setSelectedFile(null);
           await loadStatus();
         } catch (err) {
           Dashboard.alert(err.message);
+          selectedFileText.textContent = file.name;
+        }
+      }
+
+      function normalizeTheme(theme) {
+        return {
+          id: theme.id || theme.Id,
+          name: theme.name || theme.Name,
+          version: theme.version || theme.Version,
+          uploadedAt: theme.uploadedAt || theme.UploadedAt,
+        };
+      }
+
+      function normalizeStatus(status) {
+        return {
+          enabled: Boolean(status.enabled ?? status.Enabled),
+          selectedThemeId:
+            status.selectedThemeId || status.SelectedThemeId || null,
+          themes: (status.themes || status.Themes || []).map(normalizeTheme),
+          initializationFailed: Boolean(
+            status.initializationFailed ?? status.InitializationFailed,
+          ),
+        };
+      }
+
+      function createThemeRow(theme, activeThemeId) {
+        const row = document.createElement("div");
+        row.className = "themeLoaderThemeRow";
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "themeLoaderSelectedTheme";
+        radio.value = theme.id;
+        radio.checked = theme.id === activeThemeId;
+
+        const nameCell = document.createElement("div");
+        nameCell.className = "themeLoaderThemeName";
+
+        const name = document.createElement("div");
+        name.className = "themeLoaderThemeText listItemBodyText";
+        name.textContent = theme.name;
+        name.title =
+          theme.id === activeThemeId ? theme.name + " (active)" : theme.name;
+
+        const version = document.createElement("div");
+        version.className = "themeLoaderVersion secondary listItemBodyText";
+        version.textContent = theme.version;
+
+        const button = document.createElement("button");
+        button.setAttribute("is", "paper-icon-button-light");
+        button.type = "button";
+        button.title = "Remove theme";
+        button.dataset.themeId = theme.id;
+
+        const icon = document.createElement("span");
+        icon.className = "material-icons delete";
+        icon.setAttribute("aria-hidden", "true");
+
+        const actions = document.createElement("div");
+        actions.className = "themeLoaderActions";
+
+        nameCell.appendChild(name);
+        button.appendChild(icon);
+        actions.appendChild(button);
+
+        row.appendChild(radio);
+        row.appendChild(nameCell);
+        row.appendChild(version);
+        row.appendChild(actions);
+
+        return row;
+      }
+
+      function render(status) {
+        status = normalizeStatus(status);
+        currentStatus = status;
+        enabledInput.checked = status.enabled;
+
+        if (status.initializationFailed) {
+          initError.classList.remove("hide");
+          initErrorText.textContent =
+            "Theme Loader failed to initialize. Install or enable the File Transformation plugin, then restart Jellyfin.";
+        } else {
+          initError.classList.add("hide");
+          initErrorText.textContent = "";
+        }
+
+        themeList.innerHTML = "";
+        if (status.themes && status.themes.length) {
+          const activeThemeId = status.selectedThemeId || null;
+          themeCount.textContent = status.themes.length + " Installed";
+          status.themes.forEach((theme) => {
+            themeList.appendChild(createThemeRow(theme, activeThemeId));
+          });
+        } else {
+          const row = document.createElement("div");
+          row.className = "themeLoaderThemeRow";
+          row.style.gridTemplateColumns = "1fr";
+
+          const name = document.createElement("h3");
+          name.className = "listItemBodyText";
+          name.textContent = "No theme installed";
+
+          themeCount.textContent = "";
+          row.appendChild(name);
+          themeList.appendChild(row);
+        }
+
+        enabledInput.disabled = !status.selectedThemeId;
+      }
+
+      async function loadStatus() {
+        render(await request("ThemeLoader/Status", { method: "GET" }));
+      }
+
+      fileInput.addEventListener("change", () => {
+        uploadTheme(fileInput.files && fileInput.files[0]);
+      });
+
+      browseButton.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("dragging");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragging");
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("dragging");
+        const file =
+          event.dataTransfer &&
+          event.dataTransfer.files &&
+          event.dataTransfer.files[0];
+        if (file) {
+          uploadTheme(file);
         }
       });
 
-      enabledInput.addEventListener('change', async () => {
+      enabledInput.addEventListener("change", async () => {
         try {
-          await request('ThemeLoader/Status', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: enabledInput.checked })
+          await request("ThemeLoader/Status", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: enabledInput.checked }),
           });
           currentStatus = { ...currentStatus, enabled: enabledInput.checked };
         } catch (err) {
@@ -191,16 +437,48 @@
         }
       });
 
-      deleteButton.addEventListener('click', async () => {
+      themeList.addEventListener("click", async (event) => {
+        const deleteButton = event.target.closest("button[data-theme-id]");
+        if (!deleteButton) {
+          return;
+        }
+
         try {
-          await request('ThemeLoader/Theme', { method: 'DELETE' });
+          await request(
+            "ThemeLoader/Theme/" +
+              encodeURIComponent(deleteButton.dataset.themeId),
+            {
+              method: "DELETE",
+            },
+          );
           await loadStatus();
         } catch (err) {
           Dashboard.alert(err.message);
         }
       });
 
-      page.addEventListener('pageshow', loadStatus);
+      themeList.addEventListener("change", async (event) => {
+        const selectedThemeInput = event.target.closest(
+          'input[name="themeLoaderSelectedTheme"]',
+        );
+        if (!selectedThemeInput) {
+          return;
+        }
+
+        try {
+          await request("ThemeLoader/Status/SelectedTheme", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: selectedThemeInput.value }),
+          });
+          await loadStatus();
+        } catch (err) {
+          Dashboard.alert(err.message);
+          await loadStatus();
+        }
+      });
+
+      page.addEventListener("pageshow", loadStatus);
     })();
   </script>
 </div>

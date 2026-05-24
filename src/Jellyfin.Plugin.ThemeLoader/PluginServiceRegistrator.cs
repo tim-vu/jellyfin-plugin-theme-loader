@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.ThemeLoader.Repositories;
 using Jellyfin.Plugin.ThemeLoader.Services;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
@@ -9,7 +10,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
-        serviceCollection.AddSingleton<IThemeStorageService, ThemeStorageService>();
+        serviceCollection.AddScoped<IStateRepository>(s => new StateRepository());
+        serviceCollection.AddScoped<IThemeStorageService, ThemeStorageService>();
         serviceCollection.AddHostedService<FileTransformationRegistrationService>();
     }
 }

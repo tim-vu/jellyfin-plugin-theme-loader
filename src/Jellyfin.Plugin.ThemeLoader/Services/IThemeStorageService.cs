@@ -10,11 +10,13 @@ public interface IThemeStorageService
 {
   ThemeLoaderStatus GetStatus();
 
-  Task<ThemeUploadResult> UploadThemeAsync(Stream zipStream, CancellationToken cancellationToken);
+  Task<ThemeUploadResult> UpdateTheme(Stream zipStream, CancellationToken cancellationToken);
 
   void SetEnabled(bool enabled);
 
-  void DeleteTheme();
+  void SelectedTheme(Guid id);
+
+  void RemoveTheme(Guid id);
 
   ThemeAsset GetAsset(string assetPath);
 }

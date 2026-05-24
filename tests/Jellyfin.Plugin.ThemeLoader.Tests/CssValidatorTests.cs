@@ -26,6 +26,16 @@ public class CssValidatorTests
         CssValidator.Validate("@font-face{font-family:Theme;src:url('../fonts/font_a.woff')}", "css/index.css", files);
     }
 
+    [Theory]
+    [InlineData("data:image/png;base64,abc")]
+    [InlineData("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E")]
+    public void Validate_AllowsEmbeddedAssetUrls(string url)
+    {
+        HashSet<string> files = ["style.css"];
+
+        CssValidator.Validate($".x{{background:url('{url}')}}", "style.css", files);
+    }
+
     [Fact]
     public void Validate_RejectsRootPluginAssetUrls()
     {
@@ -38,9 +48,8 @@ public class CssValidatorTests
     [InlineData("https://cdn.example/theme.png")]
     [InlineData("http://cdn.example/theme.png")]
     [InlineData("//cdn.example/theme.png")]
-    [InlineData("data:image/png;base64,abc")]
     [InlineData("ftp://cdn.example/theme.png")]
-    public void Validate_RejectsRemoteOrEmbeddedUrls(string url)
+    public void Validate_RejectsRemoteUrls(string url)
     {
         HashSet<string> files = ["style.css"];
 
@@ -73,5 +82,13 @@ public class CssValidatorTests
         HashSet<string> files = ["style.css"];
 
         Assert.Throws<InvalidDataException>(() => CssValidator.Validate("@import \"https://cdn.example/theme.css\";", "style.css", files));
+    }
+
+    [Fact]
+    public void Validate_RejectsEmbeddedImports()
+    {
+        HashSet<string> files = ["style.css"];
+
+        Assert.Throws<InvalidDataException>(() => CssValidator.Validate("@import \"data:text/css,.x{}\";", "style.css", files));
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Jellyfin.Plugin.ThemeLoader.Models;
 
@@ -6,14 +7,16 @@ public sealed class ThemeLoaderStatus
 {
     public required bool Enabled { get; init; }
 
-    public required ActiveThemeInfo? Theme { get; init; }
+    public required Guid? SelectedThemeId { get; init; }
+
+    public required IReadOnlyList<ThemeInfo> Themes { get; init; }
 
     public required bool InitializationFailed { get; init; }
 }
 
-public sealed class ActiveThemeInfo
+public sealed class ThemeInfo
 {
-    public required string Slug { get; init; }
+    public required Guid Id { get; init; }
 
     public required string Name { get; init; }
 
