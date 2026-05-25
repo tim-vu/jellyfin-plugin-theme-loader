@@ -3,8 +3,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <AssemblyName>Jellyfin.Plugin.ThemeLoader</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.ThemeLoader</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

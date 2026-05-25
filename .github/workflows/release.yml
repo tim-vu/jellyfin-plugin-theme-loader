@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch:
+    paths:
+      - build.yaml
 
 permissions:
   contents: write
@@ -19,12 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Read plugin version
+      - name: Check plugin version change
         id: version
         shell: bash
         run: |
@@ -34,22 +30,44 @@ jobs:
             exit 1
           fi
 
+          previous_version=""
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${{ github.event.before }}:build.yaml" 2>/dev/null; then
+            previous_version="$(git show "${{ github.event.before }}:build.yaml" | sed -n 's/^version: "\(.*\)"/\1/p')"
+          fi
+
+          if [ "$version" = "$previous_version" ]; then
+            echo "build.yaml changed, but version stayed at $version. Skipping release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           tag="v${version}"
           if git rev-parse "$tag" >/dev/null 2>&1; then
             echo "Release tag $tag already exists. Update build.yaml version before merging to master." >&2
             exit 1
           fi
 
+          echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Setup .NET
+        if: steps.version.outputs.changed == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Test
+        if: steps.version.outputs.changed == 'true'
         run: dotnet test --configuration Release
 
       - name: Publish
+        if: steps.version.outputs.changed == 'true'
         run: dotnet publish src/Jellyfin.Plugin.ThemeLoader/Jellyfin.Plugin.ThemeLoader.csproj --configuration Release --no-restore
 
       - name: Package plugin
+        if: steps.version.outputs.changed == 'true'
         shell: bash
         run: |
           mkdir -p dist/package
@@ -60,22 +78,31 @@ jobs:
           cp "$publish_dir/AngleSharp.Css.dll" dist/package/
 
           cd dist/package
-          zip "../ThemeLoader_${{ steps.version.outputs.version }}.zip" \
-            Jellyfin.Plugin.ThemeLoader.dll \
-            AngleSharp.dll \
-            AngleSharp.Css.dll
+          zip -r "../ThemeLoader_${{ steps.version.outputs.version }}.zip" *.dll
 
           cd ..
-          md5sum "ThemeLoader_${{ steps.version.outputs.version }}.zip" > "ThemeLoader_${{ steps.version.outputs.version }}.zip.md5"
+          md5="$(md5sum "ThemeLoader_${{ steps.version.outputs.version }}.zip" | cut -d ' ' -f 1)"
+          printf 'MD5: %s\n' "$md5" > release-notes.md
 
       - name: Create GitHub release
-        if: ${{ !env.ACT }}
+        if: ${{ steps.version.outputs.changed == 'true' && !env.ACT }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
-            --title "Theme Loader ${{ steps.version.outputs.version }}" \
-            --notes-file build.yaml \
-            "dist/ThemeLoader_${{ steps.version.outputs.version }}.zip" \
-            "dist/ThemeLoader_${{ steps.version.outputs.version }}.zip.md5" \
-            "build.yaml"
+            --title "${{ steps.version.outputs.version }}" \
+            --notes-file dist/release-notes.md \
+            "dist/ThemeLoader_${{ steps.version.outputs.version }}.zip"
+
+      - name: Update Jellyfin plugin repository
+        if: ${{ steps.version.outputs.changed == 'true' && !env.ACT }}
+        uses: LizardByte/jellyfin-plugin-repo@master
+        with:
+          github_token: ${{ secrets.JPRM_GITHUB_TOKEN || github.token }}
+          committer_email: ${{ vars.JPRM_COMMITTER_EMAIL || '41898282+github-actions[bot]@users.noreply.github.com' }}
+          committer_name: ${{ vars.JPRM_COMMITTER_NAME || 'github-actions[bot]' }}
+          repository: ${{ vars.JPRM_REPOSITORY || github.repository }}
+          branch: ${{ vars.JPRM_BRANCH || 'gh-pages' }}
+          gh_pages_url: ${{ vars.JPRM_GH_PAGES_URL || 'https://jellyfin.vuegen.dev' }}
+          release_tag: ${{ steps.version.outputs.tag }}
+          zipfile: dist/ThemeLoader_${{ steps.version.outputs.version }}.zip
