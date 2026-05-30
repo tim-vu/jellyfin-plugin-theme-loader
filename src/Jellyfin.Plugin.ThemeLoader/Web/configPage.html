@@ -1,0 +1,806 @@
+<div id="themeLoaderConfigPage" data-role="page" class="page type-interior themeLoaderPage" data-title="Theme Loader">
+  <style>
+    .themeLoaderPage .themeLoaderContent {
+      max-width: 960px;
+      margin: 0 auto;
+      padding-bottom: 3em;
+    }
+
+    .themeLoaderPage .themeLoaderHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5em;
+      margin-bottom: 2em;
+    }
+
+    .themeLoaderPage .themeLoaderTitle {
+      margin-bottom: .25em;
+    }
+
+    .themeLoaderPage .themeLoaderLead {
+      margin-top: 0;
+      color: inherit;
+      opacity: .75;
+      max-width: 42em;
+    }
+
+    .themeLoaderPage .themeLoaderStatusBox {
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      min-width: 15em;
+      padding: 1em;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: .5em;
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .themeLoaderPage .themeLoaderStatusBox .emby-checkbox-label {
+      width: auto;
+      flex: 0 0 auto;
+    }
+
+    .themeLoaderPage .themeLoaderStatusText {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .themeLoaderPage .themeLoaderStatusText strong,
+    .themeLoaderPage .themeLoaderStatusText span {
+      display: block;
+    }
+
+    .themeLoaderPage .themeLoaderStatusText span {
+      margin-top: .2em;
+      opacity: .7;
+      font-size: 90%;
+    }
+
+    .themeLoaderPage .themeLoaderMessage {
+      margin: 0 0 1.5em;
+      padding: 1em;
+      border-radius: .5em;
+      border: 1px solid rgba(255, 255, 255, .16);
+      background: rgba(255, 255, 255, .05);
+    }
+
+    .themeLoaderPage .themeLoaderMessage h3 {
+      margin: 0 0 .25em;
+    }
+
+    .themeLoaderPage .themeLoaderMessage p {
+      margin: 0;
+    }
+
+    .themeLoaderPage .themeLoaderMessage-warning {
+      border-color: rgba(255, 190, 90, .55);
+      background: rgba(180, 120, 40, .18);
+    }
+
+    .themeLoaderPage .themeLoaderSection {
+      margin-bottom: 2.5em;
+    }
+
+    .themeLoaderPage .themeLoaderSectionHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1em;
+      margin-bottom: 1em;
+    }
+
+    .themeLoaderPage .themeLoaderSectionHeader h2 {
+      margin: 0;
+    }
+
+    .themeLoaderPage .themeLoaderPill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2em;
+      padding: 0 .8em;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+      font-size: 90%;
+      white-space: nowrap;
+    }
+
+    .themeLoaderPage .themeLoaderDropZone {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 14em;
+      padding: 2em;
+      border: 2px dashed rgba(255, 255, 255, .28);
+      border-radius: .6em;
+      background: rgba(255, 255, 255, .035);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .16s ease, background-color .16s ease;
+    }
+
+    .themeLoaderPage .themeLoaderDropZone:hover,
+    .themeLoaderPage .themeLoaderDropZone:focus,
+    .themeLoaderPage .themeLoaderDropZone-dragging {
+      border-color: currentColor;
+      background: rgba(255, 255, 255, .07);
+      outline: none;
+    }
+
+    .themeLoaderPage .themeLoaderDropIcon {
+      width: 3.5em;
+      height: 3.5em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1em;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .themeLoaderPage .themeLoaderDropTitle {
+      font-size: 115%;
+      font-weight: 600;
+    }
+
+    .themeLoaderPage .themeLoaderDropHelp {
+      margin: .35em 0 1.25em;
+      opacity: .7;
+    }
+
+    .themeLoaderPage .themeLoaderFileInput {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .themeLoaderPage .themeLoaderTableWrap {
+      overflow-x: auto;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: .5em;
+    }
+
+    .themeLoaderPage .themeLoaderTable {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+    }
+
+    .themeLoaderPage .themeLoaderTable th,
+    .themeLoaderPage .themeLoaderTable td {
+      padding: .9em 1em;
+      border-bottom: 1px solid rgba(255, 255, 255, .1);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .themeLoaderPage .themeLoaderTable th {
+      font-size: 90%;
+      font-weight: 600;
+      opacity: .75;
+    }
+
+    .themeLoaderPage .themeLoaderTable tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .themeLoaderPage .themeLoaderTable tbody tr:hover {
+      background: rgba(255, 255, 255, .04);
+    }
+
+    .themeLoaderPage .themeLoaderActiveCell {
+      width: 5em;
+      text-align: center;
+    }
+
+    .themeLoaderPage .themeLoaderNameCell {
+      width: 100%;
+    }
+
+    .themeLoaderPage .themeLoaderVersionCell,
+    .themeLoaderPage .themeLoaderUploadedCell {
+      width: 1%;
+      white-space: nowrap;
+    }
+
+    .themeLoaderPage .themeLoaderActionsCell {
+      width: 1%;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .themeLoaderPage .themeLoaderThemeName {
+      display: flex;
+      align-items: center;
+      gap: .65em;
+      font-weight: 600;
+    }
+
+    .themeLoaderPage .themeLoaderLed {
+      width: .6em;
+      height: .6em;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .35);
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .themeLoaderPage .themeLoaderLed-active {
+      border-color: transparent;
+      background: #00a86b;
+      box-shadow: 0 0 .45em #00a86b;
+    }
+
+    .themeLoaderPage .themeLoaderEmpty {
+      padding: 2.5em 1em;
+      text-align: center;
+      opacity: .75;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: .5em;
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .themeLoaderPage .themeLoaderMuted {
+      opacity: .7;
+    }
+
+    @media (max-width: 720px) {
+
+      .themeLoaderPage .themeLoaderHeader,
+      .themeLoaderPage .themeLoaderSectionHeader {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .themeLoaderPage .themeLoaderStatusBox {
+        min-width: 0;
+      }
+    }
+  </style>
+
+  <div class="content-primary themeLoaderContent">
+    <div class="themeLoaderHeader">
+      <div>
+        <h1 class="sectionTitle themeLoaderTitle">Theme Loader</h1>
+        <p class="themeLoaderLead">Upload local Jellyfin theme packages, choose the active theme, and enable or
+          disable injection.</p>
+      </div>
+
+      <div class="themeLoaderStatusBox">
+        <div class="themeLoaderStatusText">
+          <strong>Loader status</strong>
+          <span class="themeLoaderStatusLabel">Loading</span>
+        </div>
+        <label>
+          <input type="checkbox" is="emby-checkbox" class="themeLoaderEnabled" disabled="disabled" />
+          <span>Enabled</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="themeLoaderMessage hide" role="status" aria-live="polite">
+      <h3 class="themeLoaderMessageTitle"></h3>
+      <p class="themeLoaderMessageText"></p>
+    </div>
+
+    <div class="verticalSection themeLoaderSection">
+      <div class="themeLoaderSectionHeader">
+        <h2 class="sectionTitle">Install New Theme</h2>
+      </div>
+
+      <div class="themeLoaderDropZone" role="button" tabindex="0" aria-label="Upload theme ZIP">
+        <div class="themeLoaderDropIcon">
+          <span class="material-icons upload_file" aria-hidden="true"></span>
+        </div>
+        <div class="themeLoaderDropTitle">Drag and drop your theme ZIP here</div>
+        <div class="themeLoaderDropHelp">Theme packages must contain theme.json and a CSS entrypoint.</div>
+        <button is="emby-button" type="button" class="raised raised-mini themeLoaderBrowseButton">
+          <span class="material-icons folder" aria-hidden="true"></span>
+          <span>Browse files</span>
+        </button>
+        <input type="file" class="themeLoaderFileInput" accept=".zip,application/zip,application/x-zip-compressed" />
+      </div>
+    </div>
+
+    <div class="verticalSection themeLoaderSection">
+      <div class="themeLoaderSectionHeader">
+        <h2 class="sectionTitle">Theme Library</h2>
+        <span class="themeLoaderPill themeLoaderCount">0 installed</span>
+      </div>
+
+      <div class="themeLoaderEmpty hide">
+        No themes installed yet. Upload a ZIP package to add one.
+      </div>
+
+      <div class="themeLoaderTableWrap hide">
+        <table class="themeLoaderTable">
+          <thead>
+            <tr>
+              <th class="themeLoaderActiveCell">Active</th>
+              <th class="themeLoaderNameCell">Theme</th>
+              <th class="themeLoaderVersionCell">Version</th>
+              <th class="themeLoaderUploadedCell">Uploaded</th>
+              <th class="themeLoaderActionsCell">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="themeLoaderRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    (function () {
+      var page = document.querySelector('#themeLoaderConfigPage');
+      if (!page || page.getAttribute('data-theme-loader-bound') === 'true') {
+        return;
+      }
+
+      page.setAttribute('data-theme-loader-bound', 'true');
+
+      var state = {
+        status: null,
+        busy: false
+      };
+
+      var elements = {
+        enabled: page.querySelector('.themeLoaderEnabled'),
+        statusLabel: page.querySelector('.themeLoaderStatusLabel'),
+        message: page.querySelector('.themeLoaderMessage'),
+        messageTitle: page.querySelector('.themeLoaderMessageTitle'),
+        messageText: page.querySelector('.themeLoaderMessageText'),
+        dropZone: page.querySelector('.themeLoaderDropZone'),
+        browseButton: page.querySelector('.themeLoaderBrowseButton'),
+        fileInput: page.querySelector('.themeLoaderFileInput'),
+        count: page.querySelector('.themeLoaderCount'),
+        empty: page.querySelector('.themeLoaderEmpty'),
+        tableWrap: page.querySelector('.themeLoaderTableWrap'),
+        rows: page.querySelector('.themeLoaderRows')
+      };
+
+      function getApiUrl(path) {
+        var cleanPath = path.charAt(0) === '/' ? path.substring(1) : path;
+
+        if (window.ApiClient && typeof window.ApiClient.getUrl === 'function') {
+          return window.ApiClient.getUrl(cleanPath);
+        }
+
+        return '/' + cleanPath;
+      }
+
+      function getHeaders(includeJson) {
+        var headers = {
+          Accept: 'application/json'
+        };
+
+        if (window.ApiClient && typeof window.ApiClient.setRequestHeaders === 'function') {
+          window.ApiClient.setRequestHeaders(headers);
+        }
+
+        if (includeJson) {
+          headers['Content-Type'] = 'application/json';
+        }
+
+        return headers;
+      }
+
+      function setLoading(loading) {
+        if (window.Dashboard) {
+          if (loading && typeof window.Dashboard.showLoadingMsg === 'function') {
+            window.Dashboard.showLoadingMsg();
+          } else if (!loading && typeof window.Dashboard.hideLoadingMsg === 'function') {
+            window.Dashboard.hideLoadingMsg();
+          }
+        }
+      }
+
+      function apiFetch(path, options) {
+        options = options || {};
+        options.headers = options.headers || getHeaders(!!options.json);
+        options.credentials = 'same-origin';
+
+        if (options.json) {
+          options.body = JSON.stringify(options.json);
+          delete options.json;
+        }
+
+        return fetch(getApiUrl(path), options).then(function (response) {
+          if (!response.ok) {
+            return parseProblem(response).then(function (problem) {
+              throw problem;
+            });
+          }
+
+          if (response.status === 204) {
+            return null;
+          }
+
+          return response.text().then(function (text) {
+            return text ? JSON.parse(text) : null;
+          });
+        });
+      }
+
+      function parseProblem(response) {
+        return response.text().then(function (text) {
+          var problem = {
+            title: 'Request failed',
+            detail: response.status + ' ' + response.statusText
+          };
+
+          if (!text) {
+            return problem;
+          }
+
+          try {
+            var json = JSON.parse(text);
+            problem.title = json.title || json.Title || problem.title;
+            problem.detail = json.detail || json.Detail || json.message || json.Message || problem.detail;
+          } catch (err) {
+            problem.detail = text;
+          }
+
+          return problem;
+        });
+      }
+
+      function normalizeStatus(status) {
+        var themes = status.themes || status.Themes || [];
+
+        return {
+          enabled: !!(status.enabled !== undefined ? status.enabled : status.Enabled),
+          selectedThemeId: status.selectedThemeId || status.SelectedThemeId || null,
+          initializationFailed: !!(status.initializationFailed !== undefined ? status.initializationFailed : status.InitializationFailed),
+          themes: themes.map(function (theme) {
+            return {
+              id: theme.id || theme.Id,
+              name: theme.name || theme.Name || 'Unnamed theme',
+              version: theme.version || theme.Version || '',
+              uploadedAt: theme.uploadedAt || theme.UploadedAt || null
+            };
+          })
+        };
+      }
+
+      function showInitializationFailure() {
+        elements.message.classList.remove('hide');
+        elements.message.classList.add('themeLoaderMessage-warning');
+        elements.messageTitle.textContent = 'Plugin failed to initialize';
+        elements.messageText.textContent = 'Theme injection dependency is not available. Verify the File Transformation plugin and server logs.';
+      }
+
+      function hideInitializationFailure() {
+        elements.message.classList.add('hide');
+        elements.message.classList.remove('themeLoaderMessage-warning');
+        elements.messageTitle.textContent = '';
+        elements.messageText.textContent = '';
+      }
+
+      function notify(title, text) {
+        var message = text ? title + ': ' + text : title;
+
+        if (window.Dashboard && typeof window.Dashboard.alert === 'function') {
+          window.Dashboard.alert(message);
+          return;
+        }
+
+        window.alert(message);
+      }
+
+      function notifyProblem(problem) {
+        notify(problem.title || 'Request failed', problem.detail || 'Unexpected error.');
+      }
+
+      function formatDate(value) {
+        if (!value) {
+          return '-';
+        }
+
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return '-';
+        }
+
+        return date.toLocaleString();
+      }
+
+      function setBusy(busy) {
+        state.busy = busy;
+        renderStatus();
+      }
+
+      function applyControlState() {
+        page.querySelectorAll('button, input[type="radio"]').forEach(function (control) {
+          control.disabled = state.busy;
+        });
+        elements.fileInput.disabled = state.busy;
+        elements.dropZone.setAttribute('aria-disabled', state.busy ? 'true' : 'false');
+      }
+
+      function renderStatus() {
+        var status = state.status;
+        var hasSelection = !!(status && status.selectedThemeId);
+
+        elements.enabled.disabled = state.busy || !hasSelection;
+        elements.enabled.checked = !!(status && status.enabled);
+
+        if (!status) {
+          elements.statusLabel.textContent = 'Loading';
+          elements.count.textContent = '0 installed';
+          applyControlState();
+          return;
+        }
+
+        if (!hasSelection) {
+          elements.statusLabel.textContent = 'No theme selected';
+        } else {
+          elements.statusLabel.textContent = status.enabled ? 'Enabled' : 'Disabled';
+        }
+
+        elements.count.textContent = status.themes.length + (status.themes.length === 1 ? ' theme installed' : ' themes installed');
+
+        renderThemes(status);
+        applyControlState();
+
+        if (status.initializationFailed) {
+          showInitializationFailure();
+        } else {
+          hideInitializationFailure();
+        }
+      }
+
+      function renderThemes(status) {
+        var themes = status.themes;
+        var selectedThemeId = status.selectedThemeId;
+
+        elements.empty.classList.toggle('hide', themes.length > 0);
+        elements.tableWrap.classList.toggle('hide', themes.length === 0);
+        elements.rows.innerHTML = '';
+
+        themes.forEach(function (theme) {
+          var isSelected = theme.id === selectedThemeId;
+          var row = document.createElement('tr');
+          row.innerHTML =
+            '<td class="themeLoaderActiveCell">' +
+            '<input type="radio" name="themeLoaderSelectedTheme" value="' + escapeAttribute(theme.id) + '"' + (isSelected ? ' checked="checked"' : '') + ' />' +
+            '</td>' +
+            '<td class="themeLoaderNameCell">' +
+            '<div class="themeLoaderThemeName">' +
+            '<span class="themeLoaderLed' + (isSelected ? ' themeLoaderLed-active' : '') + '"></span>' +
+            '<span></span>' +
+            '</div>' +
+            '</td>' +
+            '<td class="themeLoaderMuted themeLoaderVersionCell"></td>' +
+            '<td class="themeLoaderMuted themeLoaderUploadedCell"></td>' +
+            '<td class="themeLoaderActionsCell">' +
+            '<button is="emby-button" type="button" class="button-flat themeLoaderDeleteButton" title="Delete theme" data-theme-id="' + escapeAttribute(theme.id) + '">' +
+            '<span class="material-icons delete" aria-hidden="true"></span>' +
+            '</button>' +
+            '</td>';
+
+          row.querySelector('.themeLoaderThemeName span:last-child').textContent = theme.name;
+          row.children[2].textContent = theme.version || '-';
+          row.children[3].textContent = formatDate(theme.uploadedAt);
+          elements.rows.appendChild(row);
+        });
+      }
+
+      function escapeAttribute(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function loadStatus() {
+        setLoading(true);
+        return apiFetch('/ThemeLoader/Status', {method: 'GET'})
+          .then(function (status) {
+            state.status = normalizeStatus(status || {});
+            renderStatus();
+          })
+          .catch(notifyProblem)
+          .finally(function () {
+            setLoading(false);
+          });
+      }
+
+      function setEnabled(enabled) {
+        if (enabled && (!state.status || !state.status.selectedThemeId)) {
+          elements.enabled.checked = false;
+          notify('Theme required', 'Select or upload a theme before enabling the loader.');
+          return;
+        }
+
+        setBusy(true);
+        apiFetch('/ThemeLoader/Status', {
+          method: 'PUT',
+          json: {Enabled: enabled}
+        })
+          .then(function () {
+            return loadStatus();
+          })
+          .catch(function (problem) {
+            notifyProblem(problem);
+            return loadStatus();
+          })
+          .finally(function () {
+            setBusy(false);
+          });
+      }
+
+      function selectTheme(id) {
+        setBusy(true);
+        apiFetch('/ThemeLoader/Status/SelectedTheme', {
+          method: 'PUT',
+          json: {Id: id}
+        })
+          .then(function () {
+            return loadStatus();
+          })
+          .catch(function (problem) {
+            notifyProblem(problem);
+            return loadStatus();
+          })
+          .finally(function () {
+            setBusy(false);
+          });
+      }
+
+      function deleteTheme(id) {
+        if (!window.confirm('Delete this theme?')) {
+          return;
+        }
+
+        setBusy(true);
+        apiFetch('/ThemeLoader/Theme/' + encodeURIComponent(id), {method: 'DELETE'})
+          .then(function () {
+            notify('Theme deleted');
+            return loadStatus();
+          })
+          .catch(function (problem) {
+            notifyProblem(problem);
+            return loadStatus();
+          })
+          .finally(function () {
+            setBusy(false);
+          });
+      }
+
+      function uploadFile(file) {
+        if (state.busy) {
+          return;
+        }
+
+        if (!file) {
+          return;
+        }
+
+        if (!file.name || !file.name.toLowerCase().endsWith('.zip')) {
+          notify('Invalid file type', 'Theme upload must be a ZIP file.');
+          return;
+        }
+
+        var formData = new FormData();
+        formData.append('file', file);
+
+        setBusy(true);
+        setLoading(true);
+
+        fetch(getApiUrl('/ThemeLoader/Themes'), {
+          method: 'POST',
+          body: formData,
+          headers: getHeaders(false),
+          credentials: 'same-origin'
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              return parseProblem(response).then(function (problem) {
+                throw problem;
+              });
+            }
+
+            return response.json();
+          })
+          .then(function (result) {
+            var name = result.name || result.Name || file.name;
+            notify('Uploaded theme: ', name);
+            elements.fileInput.value = '';
+            return loadStatus();
+          })
+          .catch(notifyProblem)
+          .finally(function () {
+            setLoading(false);
+            setBusy(false);
+          });
+      }
+
+      elements.enabled.addEventListener('change', function () {
+        setEnabled(elements.enabled.checked);
+      });
+
+      elements.browseButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        if (state.busy) {
+          return;
+        }
+        elements.fileInput.click();
+      });
+
+      elements.fileInput.addEventListener('change', function () {
+        uploadFile(elements.fileInput.files && elements.fileInput.files[0]);
+      });
+
+      elements.dropZone.addEventListener('click', function () {
+        if (state.busy) {
+          return;
+        }
+        elements.fileInput.click();
+      });
+
+      elements.dropZone.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          if (state.busy) {
+            return;
+          }
+          elements.fileInput.click();
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach(function (name) {
+        elements.dropZone.addEventListener(name, function (event) {
+          event.preventDefault();
+          elements.dropZone.classList.add('themeLoaderDropZone-dragging');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(function (name) {
+        elements.dropZone.addEventListener(name, function (event) {
+          event.preventDefault();
+          elements.dropZone.classList.remove('themeLoaderDropZone-dragging');
+        });
+      });
+
+      elements.dropZone.addEventListener('drop', function (event) {
+        if (state.busy) {
+          return;
+        }
+        var files = event.dataTransfer && event.dataTransfer.files;
+        uploadFile(files && files[0]);
+      });
+
+      elements.rows.addEventListener('change', function (event) {
+        if (event.target && event.target.matches('input[type="radio"]')) {
+          selectTheme(event.target.value);
+        }
+      });
+
+      elements.rows.addEventListener('click', function (event) {
+        var button = event.target.closest('.themeLoaderDeleteButton');
+        if (button) {
+          deleteTheme(button.getAttribute('data-theme-id'));
+        }
+      });
+
+      function onPageShow() {
+        hideInitializationFailure();
+        loadStatus();
+      }
+
+      page.addEventListener('viewshow', onPageShow);
+      page.addEventListener('pageshow', onPageShow);
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadStatus);
+      } else {
+        loadStatus();
+      }
+    }());
+  </script>
+</div>
