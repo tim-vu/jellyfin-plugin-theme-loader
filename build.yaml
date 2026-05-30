@@ -1,0 +1,21 @@
+---
+name: "Theme Loader"
+guid: "7714068a-7f34-4a14-a059-595e98e2abe4"
+version: "0.1.0.1"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+overview: "Load packaged CSS themes into Jellyfin"
+description: >
+  Theme Loader stores self-contained theme ZIP packages and applies the selected
+  CSS during Jellyfin Web's initial load. Theme assets are served from Jellyfin,
+  package references are validated before install, and themes can cover early
+  screens such as login without showing the base theme first. Requires File
+  Transformation.
+category: "General"
+owner: "timvu"
+artifacts:
+  - "Jellyfin.Plugin.ThemeLoader.dll"
+  - "AngleSharp.dll"
+  - "AngleSharp.Css.dll"
+changelog: >
+  Initial release
